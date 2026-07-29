@@ -108,6 +108,7 @@ public static class PhotoScorer
         {
             Subject = subject,
             InFrame = true,
+            ScreenRect = new Rect2(minX, minY, maxX - minX, maxY - minY),
             Coverage = coverage,
             Centering = centering,
             Visibility = visibility,

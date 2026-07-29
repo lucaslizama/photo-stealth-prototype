@@ -1,12 +1,26 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/Player/PlayerController.cs" id="1_player"]
 [ext_resource type="Script" path="res://scripts/Player/PlayerStealthProfile.cs" id="2_profile"]
 [ext_resource type="Script" path="res://scripts/Photo/PhotoCamera.cs" id="3_photocamera"]
+[ext_resource type="Script" path="res://scripts/Player/PlayerCameraRig.cs" id="4_camerarig"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
 height = 1.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_player"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_player"]
+albedo_color = Color(0.35, 0.72, 0.95, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_facing"]
+size = Vector3(0.14, 0.14, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_facing"]
+albedo_color = Color(0.95, 0.97, 1, 1)
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_layer = 2
@@ -17,17 +31,37 @@ script = ExtResource("1_player")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_body")
 
+[node name="Body" type="Node3D" parent="."]
+
+[node name="Shell" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_player")
+surface_material_override/0 = SubResource("StandardMaterial3D_player")
+
+[node name="Facing" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, -0.4)
+mesh = SubResource("BoxMesh_facing")
+surface_material_override/0 = SubResource("StandardMaterial3D_facing")
+
 [node name="Head" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
 
 [node name="Camera" type="Camera3D" parent="Head"]
-current = true
-fov = 78.0
+cull_mask = 1048571
+fov = 45.0
 
 [node name="FlashLight" type="OmniLight3D" parent="Head"]
 visible = false
 light_energy = 7.0
 omni_range = 9.0
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("4_camerarig")
+
+[node name="TopCamera" type="Camera3D" parent="CameraRig"]
+cull_mask = 1048573
+current = true
+fov = 50.0
 
 [node name="StealthProfile" type="Node" parent="."]
 script = ExtResource("2_profile")

@@ -10,20 +10,24 @@ namespace PhotoStealthPrototype.Photo;
 /// The player's camera: aim, zoom, flash, and the shutter.
 /// </summary>
 /// <remarks>
-/// Drives the existing <c>Head/Camera</c> rather than adding a second Camera3D —
-/// zoom is just FOV, and because the scorer reads the live projection, zooming
-/// improves coverage with no special-casing anywhere.
+/// Drives the first-person <c>Head/Camera</c> — zoom is just FOV, and because the
+/// scorer reads the live projection, zooming improves coverage with no
+/// special-casing anywhere.
 /// <para>
 /// The flash is the point where this system reaches back into stealth: it is the
 /// only way to photograph a dark subject, and firing it spikes every nearby
 /// guard's detection meter.
+/// </para>
+/// <para>
+/// Film is finite and every press of the shutter spends a frame, hit or miss.
+/// That is the whole pressure of the mode: a careless click is a real loss, so
+/// framing has to happen before the click rather than by trial and error.
 /// </para>
 /// </remarks>
 [GlobalClass]
 public partial class PhotoCamera : Node
 {
     [ExportGroup("Aim & zoom")]
-    [Export] public float HipFov { get; set; } = 78.0f;
     [Export] public float AimFov { get; set; } = 45.0f;
     [Export] public float MinFov { get; set; } = 18.0f;
     [Export] public float MaxFov { get; set; } = 60.0f;
@@ -49,7 +53,9 @@ public partial class PhotoCamera : Node
     [ExportGroup("Capture")]
     [Export] public int StoredPhotoWidth { get; set; } = 640;
     [Export] public bool SavePngCopies { get; set; } = true;
-    [Export] public int MaxStoredPhotos { get; set; } = 12;
+
+    /// <summary>Exposures on the roll. Every shutter press spends one.</summary>
+    [Export] public int FilmCapacity { get; set; } = 8;
 
     /// <summary>
     /// Optional explicit director. Left unset it is found via the
@@ -66,9 +72,25 @@ public partial class PhotoCamera : Node
     [Signal] public delegate void PhotoTakenEventHandler();
     [Signal] public delegate void FlashToggledEventHandler(bool on);
 
-    public bool IsAiming { get; private set; }
+    /// <summary>Shutter pressed with an empty roll. The HUD says so out loud.</summary>
+    [Signal] public delegate void OutOfFilmEventHandler();
+
+    /// <summary>True while the viewfinder is up — the only state a photo can be taken in.</summary>
+    public bool IsAiming => _player.View == ViewMode.FirstPerson;
+
     public bool FlashOn { get; private set; }
-    public float CurrentFov => _camera?.Fov ?? HipFov;
+    public float CurrentFov => _camera?.Fov ?? AimFov;
+
+    /// <summary>Exposures left on the roll.</summary>
+    public int ShotsRemaining { get; private set; }
+
+    public bool HasFilm => ShotsRemaining > 0;
+
+    /// <summary>
+    /// True while a frame grab is in flight. The album checks this before opening:
+    /// it is not in the hud group, so opening it mid-grab would photograph it.
+    /// </summary>
+    public bool IsCapturing => _capturing;
 
     /// <summary>Zoom as 0..1, where 1 is fully zoomed in. For the HUD.</summary>
     public float Zoom01 => Mathf.Clamp(1f - ((_aimFov - MinFov) / Mathf.Max(MaxFov - MinFov, 0.01f)), 0f, 1f);
@@ -76,13 +98,21 @@ public partial class PhotoCamera : Node
     public PhotoScore LastScore { get; private set; }
     public IReadOnlyList<CapturedPhoto> Photos => _photos;
 
+    /// <summary>
+    /// Every subject's score as of this frame, refreshed only while aiming. Lets the
+    /// viewfinder bracket and name what the lens is on before a frame is spent on it
+    /// — which is what keeps a finite roll fair rather than a guessing game.
+    /// </summary>
+    public IReadOnlyList<PhotoScore> LiveScores => _liveScores;
+
     private PlayerController _player = null!;
     private Camera3D _camera = null!;
     private OmniLight3D? _flashLight;
     private readonly List<CapturedPhoto> _photos = new();
+    private readonly List<PhotoScore> _liveScores = new();
+    private readonly List<PhotoScore> _shutterScores = new();
     private float _aimFov;
     private bool _capturing;
-    private int _saveIndex;
 
     public override void _Ready()
     {
@@ -104,11 +134,28 @@ public partial class PhotoCamera : Node
         }
 
         _aimFov = AimFov;
-        _camera.Fov = HipFov;
+        _camera.Fov = _aimFov;
+        ShotsRemaining = FilmCapacity;
+
+        _player.ViewChanged += OnViewChanged;
 
         // Same reason, one level up: the director is a later sibling of Player, so
         // it has not joined its group yet. Resolve after the tree settles.
         CallDeferred(nameof(ResolveDirector));
+    }
+
+    /// <summary>
+    /// Snaps the lens to the dialled-in zoom as the viewfinder comes up. Blending
+    /// in from a wider FOV would look nicer but means the first fraction of a
+    /// second of every raise is a frame the player did not choose — and the scorer
+    /// reads the live projection, so a fast shutter would be graded on it.
+    /// </summary>
+    private void OnViewChanged(bool firstPerson)
+    {
+        if (firstPerson)
+        {
+            _camera.Fov = _aimFov;
+        }
     }
 
     private void ResolveDirector()
@@ -123,10 +170,21 @@ public partial class PhotoCamera : Node
 
     public override void _Process(double delta)
     {
-        IsAiming = Input.IsActionPressed("aim_camera");
+        // Only ever chases the zoom setting: the first-person camera is on screen
+        // exclusively while aiming, so there is no lowered "hip" FOV to return to.
+        // The blend is what makes wheel zoom feel like a lens rather than a step.
+        _camera.Fov = Mathf.Lerp(_camera.Fov, _aimFov, 1f - Mathf.Exp(-FovBlendSpeed * (float)delta));
 
-        float target = IsAiming ? _aimFov : HipFov;
-        _camera.Fov = Mathf.Lerp(_camera.Fov, target, 1f - Mathf.Exp(-FovBlendSpeed * (float)delta));
+        // Only while aiming: this raycasts every subject's sample points, and there
+        // is nothing to draw brackets on when the viewfinder is down.
+        if (IsAiming)
+        {
+            ScoreAllSubjects(_liveScores);
+        }
+        else if (_liveScores.Count > 0)
+        {
+            _liveScores.Clear();
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -158,7 +216,8 @@ public partial class PhotoCamera : Node
     }
 
     /// <summary>
-    /// Scores every subject, banks the best one, and fires the flash consequence.
+    /// Spends a frame of film, scores every subject, banks the best one, and fires
+    /// the flash consequence. Returns false when the shutter did not fire.
     /// </summary>
     /// <remarks>
     /// Everything that affects game state happens synchronously here; the image
@@ -167,8 +226,27 @@ public partial class PhotoCamera : Node
     /// build with no rendering device (headless, CI) the await never resolved and
     /// the camera silently stopped working after a single shot.
     /// </remarks>
-    public void TakePhoto()
+    public bool TakePhoto()
     {
+        // The viewfinder has to be up. The shot is framed, scored and grabbed
+        // through the first-person lens, and in top-down that camera is not even
+        // the one on screen — a shutter there would hand back a photo of a view
+        // the player never saw.
+        if (!IsAiming)
+        {
+            return false;
+        }
+
+        if (!HasFilm)
+        {
+            EmitSignal(SignalName.OutOfFilm);
+            return false;
+        }
+
+        // Spent before the shot is graded, and spent whatever the grade turns out
+        // to be. A wasted frame is the cost of a careless click.
+        ShotsRemaining--;
+
         PhotoScore best = ScoreBestSubject();
         LastScore = best;
         best.Subject?.RecordQuality(best.Quality);
@@ -178,38 +256,30 @@ public partial class PhotoCamera : Node
             Director?.ReportDisturbance(_player.GlobalPosition, FlashAlertRadius, FlashDetectionSpike);
         }
 
-        var photo = new CapturedPhoto(
-            best.Subject?.DisplayName ?? "nothing", best.Quality, best.Diagnose());
-
-        _photos.Insert(0, photo);
-
-        while (_photos.Count > MaxStoredPhotos)
-        {
-            _photos.RemoveAt(_photos.Count - 1);
-        }
+        // Appended, not inserted at 0: the album is a roll of film read in the
+        // order it was shot, and frame numbers have to agree with that order.
+        var photo = new CapturedPhoto(FilmCapacity - ShotsRemaining, best);
+        _photos.Add(photo);
 
         EmitSignal(SignalName.PhotoTaken);
 
         _ = AttachFrameAsync(photo);
+        return true;
     }
 
     /// <summary>Best-scoring subject currently framed, or a miss if none are.</summary>
+    /// <remarks>
+    /// Scores afresh rather than reusing <see cref="LiveScores"/>: the shutter has to
+    /// grade the instant it was pressed, not whatever the last drawn frame measured.
+    /// </remarks>
     public PhotoScore ScoreBestSubject()
     {
-        PhotoScoringSettings settings = BuildSettings();
-        var exclude = new Godot.Collections.Array<Rid> { _player.GetRid() };
+        ScoreAllSubjects(_shutterScores);
 
         PhotoScore best = PhotoScore.Miss(null);
 
-        foreach (Node node in GetTree().GetNodesInGroup(PhotoSubject.GroupName))
+        foreach (PhotoScore score in _shutterScores)
         {
-            if (node is not PhotoSubject subject)
-            {
-                continue;
-            }
-
-            PhotoScore score = PhotoScorer.Evaluate(_camera, subject, settings, exclude);
-
             // Prefer the better shot; when nothing scores, still prefer a subject
             // that was at least on screen so the feedback can be specific.
             bool better = score.Quality > best.Quality
@@ -224,19 +294,63 @@ public partial class PhotoCamera : Node
         return best;
     }
 
+    /// <summary>Grades every subject in the scene into <paramref name="into"/>.</summary>
+    private void ScoreAllSubjects(List<PhotoScore> into)
+    {
+        into.Clear();
+
+        PhotoScoringSettings settings = BuildSettings();
+        var exclude = new Godot.Collections.Array<Rid> { _player.GetRid() };
+
+        foreach (Node node in GetTree().GetNodesInGroup(PhotoSubject.GroupName))
+        {
+            if (node is PhotoSubject subject)
+            {
+                into.Add(PhotoScorer.Evaluate(_camera, subject, settings, exclude));
+            }
+        }
+    }
+
     /// <summary>
     /// Dictionary view of the current best shot, for the debug HUD and for the
     /// headless test harness that drives the scoring rubric.
     /// </summary>
     public Godot.Collections.Dictionary DescribeBestShot() => ScoreBestSubject().ToDictionary();
 
-    /// <summary>Forces the lens to a given FOV, bypassing the aim blend. Test hook.</summary>
+    /// <summary>
+    /// Marshallable view of the album, newest frame last. <see cref="Photos"/> is an
+    /// <c>IReadOnlyList</c>, which does not cross into GDScript — reading it from a
+    /// probe fails with "Invalid access to property". This is how a probe reads it.
+    /// </summary>
+    public Godot.Collections.Array DescribeAlbum()
+    {
+        var album = new Godot.Collections.Array();
+
+        foreach (CapturedPhoto photo in _photos)
+        {
+            album.Add(new Godot.Collections.Dictionary
+            {
+                { "frame", photo.FrameNumber },
+                { "subject", photo.SubjectName },
+                { "quality", photo.Quality },
+                { "passed", photo.Passed },
+                { "diagnosis", photo.Diagnosis },
+                { "has_image", photo.Texture is not null },
+            });
+        }
+
+        return album;
+    }
+
+    /// <summary>Forces the lens to a given FOV, bypassing the zoom blend. Test hook.</summary>
     public void ForceFov(float fov)
     {
         _aimFov = Mathf.Clamp(fov, MinFov, MaxFov);
-        HipFov = fov;
         _camera.Fov = fov;
     }
+
+    /// <summary>Reloads the roll to full. Test hook.</summary>
+    public void RefillFilm() => ShotsRemaining = FilmCapacity;
 
     /// <summary>Turns the flash on or off without going through input. Test hook.</summary>
     public void SetFlash(bool on)
@@ -345,8 +459,9 @@ public partial class PhotoCamera : Node
         string safe = photo.SubjectName.Replace(' ', '-').Replace('/', '-');
         int percent = Mathf.RoundToInt(photo.Quality * 100f);
 
-        // Index restarts each run, so files are overwritten rather than piling up.
-        Error error = image.SavePng($"{directory}/photo_{_saveIndex++:D3}_{safe}_{percent}.png");
+        // Named by frame number, so the roll restarts each run and files are
+        // overwritten rather than piling up.
+        Error error = image.SavePng($"{directory}/photo_{photo.FrameNumber:D2}_{safe}_{percent}.png");
         if (error != Error.Ok)
         {
             GD.PushWarning($"Could not save photo PNG: {error}");

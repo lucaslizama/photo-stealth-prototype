@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/Photo/PhotoSubject.cs" id="7_subject"]
 [ext_resource type="Script" path="res://scripts/Photo/PhotoMission.cs" id="8_mission"]
 [ext_resource type="PackedScene" path="res://scenes/PhotoHud.tscn" id="9_photohud"]
+[ext_resource type="PackedScene" path="res://scenes/Album.tscn" id="10_album"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -31,8 +32,39 @@ albedo_color = Color(0.44, 0.39, 0.31, 1)
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="Material_paper"]
-albedo_color = Color(0.52, 0.49, 0.38, 1)
+albedo_color = Color(0.88, 0.86, 0.76, 1)
 roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Material_ink"]
+albedo_color = Color(0.18, 0.17, 0.16, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Material_safe"]
+albedo_color = Color(0.13, 0.14, 0.17, 1)
+metallic = 0.6
+roughness = 0.45
+
+[sub_resource type="StandardMaterial3D" id="Material_safetrim"]
+albedo_color = Color(0.62, 0.6, 0.5, 1)
+metallic = 0.7
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="Material_blueprint"]
+albedo_color = Color(0.11, 0.29, 0.53, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Material_blueprintline"]
+albedo_color = Color(0.82, 0.89, 0.97, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Material_vip"]
+albedo_color = Color(0.51, 0.28, 0.68, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Material_vipgold"]
+albedo_color = Color(0.95, 0.78, 0.3, 1)
+metallic = 0.7
+roughness = 0.35
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_lampA"]
 size = Vector3(7, 3, 7)
@@ -67,6 +99,7 @@ material = SubResource("Material_wall")
 [node name="WallSouth" type="CSGBox3D" parent="Level" unique_id=3616052]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 8)
 use_collision = true
+layers = 2
 size = Vector3(24, 3, 0.5)
 material = SubResource("Material_wall")
 
@@ -202,27 +235,220 @@ Player = NodePath("../Player")
 
 [node name="Subjects" type="Node3D" parent="."]
 
-[node name="Documents" type="Node3D" parent="Subjects"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.68, 1.45, -6)
+[node name="SafeAlcove" type="Node3D" parent="Subjects"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.75, 1.45, -6)
+
+[node name="Back" type="CSGBox3D" parent="Subjects/SafeAlcove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.03, 0, 0)
+size = Vector3(0.06, 1.2, 1.4)
+material = SubResource("Material_safe")
+
+[node name="Top" type="CSGBox3D" parent="Subjects/SafeAlcove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.24, 0.54, 0)
+size = Vector3(0.48, 0.12, 1.4)
+material = SubResource("Material_safe")
+
+[node name="Bottom" type="CSGBox3D" parent="Subjects/SafeAlcove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.24, -0.54, 0)
+size = Vector3(0.48, 0.12, 1.4)
+material = SubResource("Material_safe")
+
+[node name="SideNear" type="CSGBox3D" parent="Subjects/SafeAlcove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.24, 0, 0.64)
+size = Vector3(0.48, 1.2, 0.12)
+material = SubResource("Material_safe")
+
+[node name="SideFar" type="CSGBox3D" parent="Subjects/SafeAlcove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.24, 0, -0.64)
+size = Vector3(0.48, 1.2, 0.12)
+material = SubResource("Material_safe")
+
+[node name="Door" type="Node3D" parent="Subjects/SafeAlcove"]
+transform = Transform3D(0.342, 0, 0.94, 0, 1, 0, -0.94, 0, 0.342, 0.48, 0, 0.7)
+
+[node name="Panel" type="CSGBox3D" parent="Subjects/SafeAlcove/Door"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.7)
+size = Vector3(0.05, 1.2, 1.4)
+material = SubResource("Material_safe")
+
+[node name="Dial" type="CSGCylinder3D" parent="Subjects/SafeAlcove/Door"]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0.05, 0, -0.7)
+radius = 0.11
+height = 0.06
+sides = 12
+material = SubResource("Material_vipgold")
+
+[node name="DialSpoke" type="CSGBox3D" parent="Subjects/SafeAlcove/Door"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, 0, -0.7)
+size = Vector3(0.03, 0.26, 0.03)
+material = SubResource("Material_safetrim")
+
+[node name="Documents" type="Node3D" parent="Subjects/SafeAlcove"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.26, 0, 0)
 script = ExtResource("7_subject")
 DisplayName = "safe documents"
 RequiredQuality = 0.5
-Extents = Vector3(0.02, 0.35, 0.5)
+Extents = Vector3(0.06, 0.33, 0.44)
+BeaconGap = 0.55
 
-[node name="Mesh" type="CSGBox3D" parent="Subjects/Documents"]
-size = Vector3(0.04, 0.7, 1)
+[node name="SheetBack" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(0.9945, 0, 0.1045, 0, 1, 0, -0.1045, 0, 0.9945, -0.06, -0.01, 0.05)
+size = Vector3(0.02, 0.62, 0.8)
 material = SubResource("Material_paper")
 
-[node name="WallPlans" type="Node3D" parent="Subjects"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -7.68)
+[node name="SheetMid" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(0.996, 0, -0.0872, 0, 1, 0, 0.0872, 0, 0.996, 0, 0.01, -0.04)
+size = Vector3(0.02, 0.64, 0.84)
+material = SubResource("Material_paper")
+
+[node name="SheetFront" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.06, 0, 0)
+size = Vector3(0.02, 0.66, 0.86)
+material = SubResource("Material_paper")
+
+[node name="TitleBar" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.072, 0.245, -0.16)
+size = Vector3(0.005, 0.05, 0.36)
+material = SubResource("Material_ink")
+
+[node name="Line1" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.072, 0.13, 0)
+size = Vector3(0.005, 0.022, 0.66)
+material = SubResource("Material_ink")
+
+[node name="Line2" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.072, 0.045, -0.02)
+size = Vector3(0.005, 0.022, 0.62)
+material = SubResource("Material_ink")
+
+[node name="Line3" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.072, -0.04, 0.01)
+size = Vector3(0.005, 0.022, 0.68)
+material = SubResource("Material_ink")
+
+[node name="Line4" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.072, -0.125, -0.11)
+size = Vector3(0.005, 0.022, 0.46)
+material = SubResource("Material_ink")
+
+[node name="Stamp" type="CSGBox3D" parent="Subjects/SafeAlcove/Documents"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.072, -0.235, 0.25)
+size = Vector3(0.005, 0.11, 0.24)
+material = SubResource("Material_ink")
+
+[node name="PlansBoard" type="Node3D" parent="Subjects"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -7.72)
+
+[node name="Frame" type="CSGBox3D" parent="Subjects/PlansBoard"]
+size = Vector3(1.66, 1.14, 0.05)
+material = SubResource("Material_ink")
+
+[node name="PinTopLeft" type="CSGSphere3D" parent="Subjects/PlansBoard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.66, 0.42, 0.06)
+radius = 0.035
+radial_segments = 8
+rings = 4
+material = SubResource("Material_vipgold")
+
+[node name="PinTopRight" type="CSGSphere3D" parent="Subjects/PlansBoard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 0.42, 0.06)
+radius = 0.035
+radial_segments = 8
+rings = 4
+material = SubResource("Material_vipgold")
+
+[node name="WallPlans" type="Node3D" parent="Subjects/PlansBoard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.04)
 script = ExtResource("7_subject")
 DisplayName = "wall plans"
 RequiredQuality = 0.55
 Extents = Vector3(0.7, 0.45, 0.02)
+BeaconGap = 0.55
 
-[node name="Mesh" type="CSGBox3D" parent="Subjects/WallPlans"]
-size = Vector3(1.4, 0.9, 0.04)
-material = SubResource("Material_paper")
+[node name="Sheet" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+size = Vector3(1.4, 0.9, 0.03)
+material = SubResource("Material_blueprint")
+
+[node name="PlanTop" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0.29, 0.02)
+size = Vector3(1, 0.022, 0.008)
+material = SubResource("Material_blueprintline")
+
+[node name="PlanBottom" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, -0.29, 0.02)
+size = Vector3(1, 0.022, 0.008)
+material = SubResource("Material_blueprintline")
+
+[node name="PlanLeft" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.59, 0, 0.02)
+size = Vector3(0.022, 0.6, 0.008)
+material = SubResource("Material_blueprintline")
+
+[node name="PlanRight" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.39, 0, 0.02)
+size = Vector3(0.022, 0.6, 0.008)
+material = SubResource("Material_blueprintline")
+
+[node name="PlanDivider" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02, -0.1, 0.02)
+size = Vector3(0.022, 0.38, 0.008)
+material = SubResource("Material_blueprintline")
+
+[node name="PlanRoom" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0.06, 0.02)
+size = Vector3(0.48, 0.022, 0.008)
+material = SubResource("Material_blueprintline")
+
+[node name="PlanCorridor" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.12, 0.02)
+size = Vector3(0.4, 0.022, 0.008)
+material = SubResource("Material_blueprintline")
+
+[node name="TitleBlock" type="CSGBox3D" parent="Subjects/PlansBoard/WallPlans"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, -0.34, 0.02)
+size = Vector3(0.3, 0.12, 0.008)
+material = SubResource("Material_blueprintline")
+
+[node name="Body" parent="Guards/Guard2" index="1"]
+surface_material_override/0 = SubResource("Material_vip")
+
+[node name="HatBrim" type="CSGCylinder3D" parent="Guards/Guard2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.83, 0)
+radius = 0.3
+height = 0.05
+sides = 16
+material = SubResource("Material_ink")
+
+[node name="HatCrown" type="CSGCylinder3D" parent="Guards/Guard2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.97, 0)
+radius = 0.2
+height = 0.24
+sides = 16
+material = SubResource("Material_ink")
+
+[node name="HatBand" type="CSGCylinder3D" parent="Guards/Guard2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.88, 0)
+radius = 0.21
+height = 0.06
+sides = 16
+material = SubResource("Material_vipgold")
+
+[node name="Sash" type="CSGCylinder3D" parent="Guards/Guard2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.12, 0)
+radius = 0.42
+height = 0.07
+sides = 16
+material = SubResource("Material_vipgold")
+
+[node name="Briefcase" type="CSGBox3D" parent="Guards/Guard2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.46, 0.62, 0)
+size = Vector3(0.12, 0.3, 0.42)
+material = SubResource("Material_ink")
+
+[node name="BriefcaseClasp" type="CSGBox3D" parent="Guards/Guard2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.53, 0.68, 0)
+size = Vector3(0.03, 0.06, 0.16)
+material = SubResource("Material_vipgold")
 
 [node name="VipSubject" type="Node3D" parent="Guards/Guard2"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
@@ -230,11 +456,16 @@ script = ExtResource("7_subject")
 DisplayName = "the VIP"
 RequiredQuality = 0.45
 Extents = Vector3(0.35, 0.5, 0.35)
+BeaconGap = 0.95
 
 [node name="Mission" type="Node" parent="." node_paths=PackedStringArray("Camera")]
 script = ExtResource("8_mission")
 Camera = NodePath("../Player/PhotoCamera")
 
 [node name="PhotoHud" parent="." node_paths=PackedStringArray("Camera", "Mission") instance=ExtResource("9_photohud")]
+Camera = NodePath("../Player/PhotoCamera")
+Mission = NodePath("../Mission")
+
+[node name="Album" parent="." node_paths=PackedStringArray("Camera", "Mission") instance=ExtResource("10_album")]
 Camera = NodePath("../Player/PhotoCamera")
 Mission = NodePath("../Mission")

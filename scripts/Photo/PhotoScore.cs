@@ -31,6 +31,13 @@ public readonly struct PhotoScore
     /// <summary>False when the subject failed the hard on-screen gate.</summary>
     public bool InFrame { get; init; }
 
+    /// <summary>
+    /// The subject's bounds in viewport pixels — the box coverage was measured from.
+    /// Kept so the viewfinder can bracket exactly what the scorer graded, rather
+    /// than a second, subtly different guess at where the subject is on screen.
+    /// </summary>
+    public Rect2 ScreenRect { get; init; }
+
     /// <summary>A shot where the subject was not on screen at all.</summary>
     public static PhotoScore Miss(PhotoSubject? subject) => new() { Subject = subject };
 
