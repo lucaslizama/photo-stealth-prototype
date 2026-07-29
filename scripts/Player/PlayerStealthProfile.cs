@@ -62,13 +62,7 @@ public partial class PlayerStealthProfile : Node
 
     public override void _Process(double delta)
     {
-        // Brightest overlapping zone wins — standing where two lights cross
-        // should not average out to something safe.
-        Illumination = AmbientIllumination;
-        foreach (LightZone zone in _zones)
-        {
-            Illumination = Mathf.Max(Illumination, zone.Illumination);
-        }
+        Illumination = LightField.Combine(_zones, AmbientIllumination);
 
         float stance = _player.CurrentStance == Stance.Crouching ? CrouchingFactor : StandingFactor;
 

@@ -19,6 +19,11 @@ public partial class LightZone : Area3D
 
     public override void _Ready()
     {
+        // Forced in code rather than trusted to scene authoring: without this
+        // layer, LightField's point queries silently find nothing and every
+        // photo subject reads as unlit.
+        CollisionLayer |= LightField.LightLayer;
+
         BodyEntered += OnBodyEntered;
         BodyExited += OnBodyExited;
     }
