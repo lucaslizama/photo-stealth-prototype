@@ -139,6 +139,29 @@ The photo is the player's own viewport with `hud`-group CanvasLayers hidden for 
 is exactly what was framed. Do not "improve" this into an off-screen SubViewport — that is what
 the MCP `screenshot-camera` tool does, and it renders the wrong thing.
 
+## Window / display
+
+Starts **maximized windowed**, scaling up to fill the screen without distortion:
+
+```
+window/size/mode=2                  ; 2 = Maximized (keeps the titlebar)
+window/stretch/mode="canvas_items"  ; 3D renders at real window size; only the HUD scales
+window/stretch/aspect="keep"        ; Godot 4's default, so it is NOT written to the file
+```
+
+`1152x648` is the UI **design space**, not the render resolution — the HUD offsets were laid out
+against it and scale up from there. On a 2880x1620 screen the maximized window is 2880x1518 (the
+taskbar takes the rest), which is 1.897:1, so `keep` pillarboxes to a 2698x1518 16:9 viewport
+with ~91px bars each side.
+
+**`keep` over `expand` is a deliberate design decision, not a default.** Framing *is* the scoring
+in this game, so every player must get the same 16:9 field of view. `expand` would use those last
+91px but would also hand wider-monitor players more of the level in frame.
+
+> **Godot rewrites `project.godot` on every editor save**, stripping comments and any line whose
+> value equals the engine default. Do not put rationale in that file — it will vanish. That is
+> why the above is documented here instead.
+
 ## Traps worth knowing
 
 - **Godot readies children before parents.** `PhotoCamera` is a child of the player, so
