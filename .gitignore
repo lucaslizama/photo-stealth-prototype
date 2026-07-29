@@ -5,7 +5,13 @@
 # Godot legacy / import cache
 .import/
 export.cfg
-export_presets.cfg
+
+# export_presets.cfg IS committed on purpose — it is how the PC builds are
+# reproducible. It is only worth ignoring once it holds signing credentials
+# (keystore passwords etc.), which it does not.
+
+# Build output
+build/
 
 # .NET / Mono build artifacts
 .mono/

@@ -162,6 +162,41 @@ in this game, so every player must get the same 16:9 field of view. `expand` wou
 > value equals the engine default. Do not put rationale in that file — it will vanish. That is
 > why the above is documented here instead.
 
+## PC builds
+
+```bash
+./build-pc.sh          # Linux + Windows x86_64 release into build/
+```
+
+Requires the **mono** export templates in
+`~/.local/share/godot/export_templates/4.7.1.stable.mono/` (only `linux_*` and
+`windows_*` are installed, which is exactly PC — there is no macOS template).
+`export_presets.cfg` is committed on purpose so builds are reproducible; only start
+ignoring it once it holds signing credentials.
+
+The script refuses to run while the editor is open — the export spawns its own engine
+instance writing into the same `.godot/mono/temp`, and concurrent builds corrupt the output.
+
+### The addon must not ship in the game
+
+`godot_mcp` is an **editor** tool, but Godot compiles every `.cs` in the project into one
+assembly, so a naive export shipped the addon's source plus ~25 SignalR / ASP.NET DLLs. The
+`.csproj` excludes it from exports only:
+
+```xml
+<IsGodotExport Condition="'$(Configuration)' == 'ExportRelease' Or '$(Configuration)' == 'ExportDebug'">true</IsGodotExport>
+```
+
+**Godot exports with `Configuration=ExportRelease`/`ExportDebug` while editor builds use
+`Debug`** — that is the discriminator. Do **not** condition on `GodotTargetPlatform`: the Sdk
+sets it for ordinary builds too, so the condition matches always and the addon silently stops
+compiling for the editor. The presets also carry
+`exclude_filter="addons/godot_mcp/*"` to keep its promo images out of the `.pck`.
+
+After changing any of this, verify **both** halves: the editor still prints
+`[Godot-MCP] plugin loaded`, *and* the exported `data_*/` folder contains no
+`Microsoft.AspNetCore.*` / `McpPlugin` / `ReflectorNet` DLLs.
+
 ## Traps worth knowing
 
 - **Godot readies children before parents.** `PhotoCamera` is a child of the player, so

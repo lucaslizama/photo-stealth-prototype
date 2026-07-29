@@ -5,11 +5,34 @@
     <Nullable>enable</Nullable>
     <RootNamespace>PhotoStealthPrototype</RootNamespace>
   </PropertyGroup>
-  <ItemGroup>
+
+  <!--
+    Godot exports with Configuration=ExportRelease / ExportDebug, while editor
+    builds use Debug. That is the discriminator that lets the editor keep
+    compiling the godot_mcp addon while shipped builds leave it out — without it
+    the game ships the addon's whole SignalR / ASP.NET dependency tree (~25 DLLs)
+    plus its source compiled into the game assembly, for an editor tool the
+    running game never invokes.
+
+    Do NOT use GodotTargetPlatform for this: the Sdk sets it for ordinary builds
+    too, so the condition matches always and the addon breaks in the editor.
+  -->
+  <PropertyGroup>
+    <IsGodotExport>false</IsGodotExport>
+    <IsGodotExport Condition="'$(Configuration)' == 'ExportRelease' Or '$(Configuration)' == 'ExportDebug'">true</IsGodotExport>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsGodotExport)' == 'true'">
+    <Compile Remove="addons/**/*.cs" />
+  </ItemGroup>
+
+  <!-- Editor-only dependencies, for the same reason. -->
+  <ItemGroup Condition="'$(IsGodotExport)' != 'true'">
     <PackageReference Include="com.IvanMurzak.ReflectorNet" Version="5.4.0" />
     <PackageReference Include="com.IvanMurzak.McpPlugin" Version="7.5.2" />
   </ItemGroup>
-  <ItemGroup>
+
+  <ItemGroup Condition="'$(IsGodotExport)' != 'true'">
     <EmbeddedResource Include="addons/godot_mcp/extensions.catalog.json" LogicalName="Godot-MCP.extensions.catalog.json" />
   </ItemGroup>
 </Project>
