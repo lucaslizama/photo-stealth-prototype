@@ -100,6 +100,61 @@ check the spot.
 how lit the player counts as being, deliberately decoupled from the renderer — so a designer can
 make a bright-looking corner mechanically dark, and detection stays deterministic.
 
+## The photo system
+
+Three subjects (`photo_subject` group), each with its own pass mark. A shot is graded:
+
+```
+hard gate : subject centre behind camera or off-screen -> 0
+quality   = (0.7*coverage + 0.3*centering) * visibility * lighting
+```
+
+The three factors **multiply**, so any single failure kills the shot. Coverage is scored in a
+*band* — a subject filling 2% of frame is a speck, one filling 90% is cropped, both are bad
+photos. Zoom needs no special-casing anywhere: the scorer reads the live projection, so a
+narrower FOV raises coverage on its own.
+
+### The flash is two things at once
+
+It is a **scoring term** (`PhotoScoringSettings.FlashOn`, falling off with distance) *and* a
+real `OmniLight3D` at `Player/Head/FlashLight`, switched on only for the capture frame.
+
+Both halves are required. With only the scoring half, a dark-room shot reported "95%" and
+handed back a black PNG — the number and the image have to agree.
+
+Firing it calls `StealthDirector.ReportDisturbance`, which spikes nearby guards' meters scaled
+by distance and **ignores line of sight** on purpose: a flash lights the whole room, so hiding
+behind a crate is exactly when the player should get caught out. This is the coupling that makes
+darkness a trade-off rather than pure safety — dark subjects need the flash.
+
+### Capture never blocks gameplay
+
+`PhotoCamera.TakePhoto()` does all game-state work synchronously, then fires the image grab as
+best-effort. An earlier version awaited the grab first, and on a build with no rendering device
+`FramePostDraw` never resolved — `_capturing` stuck true and **the camera silently stopped
+working after one shot**. The grab now bails early when `DisplayServer.GetName() == "headless"`
+and restores HUD/flash state in a `finally`.
+
+The photo is the player's own viewport with `hud`-group CanvasLayers hidden for one frame, so it
+is exactly what was framed. Do not "improve" this into an off-screen SubViewport — that is what
+the MCP `screenshot-camera` tool does, and it renders the wrong thing.
+
+## Traps worth knowing
+
+- **Godot readies children before parents.** `PhotoCamera` is a child of the player, so
+  `PlayerController.Head` is still null in its `_Ready`. Reach nodes by path
+  (`GetNode<Camera3D>("Head/Camera")`), and defer group lookups of later siblings.
+- **`mouse_filter = 2` on every HUD Control.** With the mouse captured it sits at screen centre,
+  so a viewfinder panel with the default STOP filter silently eats the shutter click.
+- **Not everything crosses into GDScript.** `PhotoScore` (plain struct), `Rid?`, and
+  `IReadOnlyList<T>` are not marshallable, so a probe reading them fails at runtime with
+  "Invalid access to property". Use `PhotoCamera.DescribeBestShot()` / `PhotoScore.ToDictionary()`.
+- **Yaw convention** (cost me three wrong test results): `0` faces **-Z / north**, `90` faces
+  **-X / west**, `180` faces **+Z / south**.
+- **`global_position` is not propagated during `_init`** — it reads `(0,0,0)`. Resolve positions
+  lazily inside `_process`.
+- Test hooks on `PhotoCamera`: `ForceFov`, `SetFlash`, `TakePhoto`, `DescribeBestShot`.
+
 ## Verifying gameplay without clicking around
 
 Headless scripts driving the real scene are far faster than playtesting for logic checks:

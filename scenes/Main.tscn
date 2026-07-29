@@ -6,6 +6,9 @@
 [ext_resource type="Script" uid="uid://bdx5bpuac1gc2" path="res://scripts/Stealth/PatrolRoute.cs" id="4_route"]
 [ext_resource type="Script" uid="uid://3tddfsaha31e" path="res://scripts/Stealth/LightZone.cs" id="5_lightzone"]
 [ext_resource type="Script" uid="uid://v8ju67j12lev" path="res://scripts/Stealth/StealthDirector.cs" id="6_director"]
+[ext_resource type="Script" path="res://scripts/Photo/PhotoSubject.cs" id="7_subject"]
+[ext_resource type="Script" path="res://scripts/Photo/PhotoMission.cs" id="8_mission"]
+[ext_resource type="PackedScene" path="res://scenes/PhotoHud.tscn" id="9_photohud"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -26,6 +29,10 @@ roughness = 0.95
 [sub_resource type="StandardMaterial3D" id="Material_cover"]
 albedo_color = Color(0.44, 0.39, 0.31, 1)
 roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Material_paper"]
+albedo_color = Color(0.52, 0.49, 0.38, 1)
+roughness = 0.9
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_lampA"]
 size = Vector3(7, 3, 7)
@@ -192,3 +199,42 @@ script = ExtResource("6_director")
 [node name="Hud" parent="." unique_id=663927668 node_paths=PackedStringArray("Director", "Player") instance=ExtResource("3_hudscene")]
 Director = NodePath("../Director")
 Player = NodePath("../Player")
+
+[node name="Subjects" type="Node3D" parent="."]
+
+[node name="Documents" type="Node3D" parent="Subjects"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.68, 1.45, -6)
+script = ExtResource("7_subject")
+DisplayName = "safe documents"
+RequiredQuality = 0.5
+Extents = Vector3(0.02, 0.35, 0.5)
+
+[node name="Mesh" type="CSGBox3D" parent="Subjects/Documents"]
+size = Vector3(0.04, 0.7, 1)
+material = SubResource("Material_paper")
+
+[node name="WallPlans" type="Node3D" parent="Subjects"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -7.68)
+script = ExtResource("7_subject")
+DisplayName = "wall plans"
+RequiredQuality = 0.55
+Extents = Vector3(0.7, 0.45, 0.02)
+
+[node name="Mesh" type="CSGBox3D" parent="Subjects/WallPlans"]
+size = Vector3(1.4, 0.9, 0.04)
+material = SubResource("Material_paper")
+
+[node name="VipSubject" type="Node3D" parent="Guards/Guard2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+script = ExtResource("7_subject")
+DisplayName = "the VIP"
+RequiredQuality = 0.45
+Extents = Vector3(0.35, 0.5, 0.35)
+
+[node name="Mission" type="Node" parent="." node_paths=PackedStringArray("Camera")]
+script = ExtResource("8_mission")
+Camera = NodePath("../Player/PhotoCamera")
+
+[node name="PhotoHud" parent="." node_paths=PackedStringArray("Camera", "Mission") instance=ExtResource("9_photohud")]
+Camera = NodePath("../Player/PhotoCamera")
+Mission = NodePath("../Mission")

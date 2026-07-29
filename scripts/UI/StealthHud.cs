@@ -26,6 +26,9 @@ public partial class StealthHud : CanvasLayer
 
     public override void _Ready()
     {
+        // So PhotoCamera can hide this layer for the capture frame.
+        AddToGroup(Photo.PhotoCamera.HudGroup);
+
         _meter = GetNode<ProgressBar>("Root/Meter");
         _stateLabel = GetNode<Label>("Root/StateLabel");
         _exposureLabel = GetNode<Label>("Root/ExposureLabel");

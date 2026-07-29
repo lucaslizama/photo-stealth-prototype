@@ -10,6 +10,9 @@ namespace PhotoStealthPrototype.Stealth;
 [GlobalClass]
 public partial class StealthDirector : Node
 {
+    /// <summary>Group used by nodes that need to find the director without wiring.</summary>
+    public const string GroupName = "stealth_director";
+
     [Signal] public delegate void PlayerCaughtEventHandler();
 
     /// <summary>Highest detection meter across all guards, 0..1.</summary>
@@ -24,6 +27,8 @@ public partial class StealthDirector : Node
 
     public override void _Ready()
     {
+        AddToGroup(GroupName);
+
         // Deferred: guards add themselves to the group in their own _Ready, and
         // sibling _Ready order is not guaranteed.
         CallDeferred(nameof(CollectGuards));
@@ -68,6 +73,36 @@ public partial class StealthDirector : Node
         {
             Restart();
         }
+    }
+
+    /// <summary>
+    /// Broadcast a disturbance to every guard within <paramref name="radius"/>,
+    /// scaled down with distance so a flash in someone's face is dangerous and one
+    /// across the room is a nudge. Returns how many guards reacted.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately ignores line of sight: a camera flash lights the whole room,
+    /// and being safely tucked behind a crate is exactly the situation where the
+    /// player should still get caught out by firing it.
+    /// </remarks>
+    public int ReportDisturbance(Vector3 position, float radius, float spike)
+    {
+        int notified = 0;
+
+        foreach (GuardController guard in _guards)
+        {
+            float distance = guard.GlobalPosition.DistanceTo(position);
+            if (distance > radius)
+            {
+                continue;
+            }
+
+            float falloff = 1f - (distance / Mathf.Max(radius, 0.01f));
+            guard.NoticeDisturbance(position, spike * falloff);
+            notified++;
+        }
+
+        return notified;
     }
 
     private void OnPlayerSpotted()

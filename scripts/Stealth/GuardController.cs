@@ -72,6 +72,24 @@ public partial class GuardController : CharacterBody3D
         }
     }
 
+    /// <summary>
+    /// Something bright enough to register happened at <paramref name="position"/>
+    /// — a camera flash, for now. Bumps the meter and points the guard at the
+    /// spot; the existing state machine promotes it to Investigate on its own, so
+    /// this needs no new state.
+    /// </summary>
+    public void NoticeDisturbance(Vector3 position, float spike)
+    {
+        if (State == GuardState.Alert)
+        {
+            return;
+        }
+
+        _lastKnownPosition = position;
+        _hasLastKnown = true;
+        Detection = Mathf.Min(Detection + spike, 1f);
+    }
+
     public override void _PhysicsProcess(double delta)
     {
         float dt = (float)delta;

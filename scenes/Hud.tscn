@@ -10,10 +10,12 @@ offset_left = 18.0
 offset_top = 16.0
 offset_right = 460.0
 offset_bottom = 110.0
+mouse_filter = 2
 theme_override_constants/separation = 6
 
 [node name="Meter" type="ProgressBar" parent="Root"]
 custom_minimum_size = Vector2(300, 16)
+mouse_filter = 2
 max_value = 100.0
 value = 0.0
 show_percentage = false
