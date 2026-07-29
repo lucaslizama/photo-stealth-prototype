@@ -1,3 +1,194 @@
-[gd_scene format=3 uid="uid://bph0t0stealth01"]
+[gd_scene format=3 uid="uid://b70m3ddhs3pyk"]
 
-[node name="Main" type="Node3D"]
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_playerscene"]
+[ext_resource type="PackedScene" path="res://scenes/Guard.tscn" id="2_guardscene"]
+[ext_resource type="PackedScene" path="res://scenes/Hud.tscn" id="3_hudscene"]
+[ext_resource type="Script" uid="uid://bdx5bpuac1gc2" path="res://scripts/Stealth/PatrolRoute.cs" id="4_route"]
+[ext_resource type="Script" uid="uid://3tddfsaha31e" path="res://scripts/Stealth/LightZone.cs" id="5_lightzone"]
+[ext_resource type="Script" uid="uid://v8ju67j12lev" path="res://scripts/Stealth/StealthDirector.cs" id="6_director"]
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 1
+background_color = Color(0.05, 0.06, 0.08, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.24, 0.28, 0.38, 1)
+ambient_light_energy = 0.55
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="Material_floor"]
+albedo_color = Color(0.2, 0.21, 0.24, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Material_wall"]
+albedo_color = Color(0.3, 0.31, 0.35, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="Material_cover"]
+albedo_color = Color(0.44, 0.39, 0.31, 1)
+roughness = 0.85
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lampA"]
+size = Vector3(7, 3, 7)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lampB"]
+size = Vector3(5, 3, 5)
+
+[node name="Main" type="Node3D" unique_id=1914873774]
+
+[node name="Environment" type="WorldEnvironment" parent="." unique_id=328231041]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1373003122]
+transform = Transform3D(1, 0, 0, 0, 0.643, -0.766, 0, 0.766, 0.643, 0, 8, 0)
+light_energy = 0.45
+shadow_enabled = true
+
+[node name="Level" type="Node3D" parent="." unique_id=1207252337]
+
+[node name="Floor" type="CSGBox3D" parent="Level" unique_id=766102299]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+use_collision = true
+size = Vector3(24, 0.5, 16)
+material = SubResource("Material_floor")
+
+[node name="WallNorth" type="CSGBox3D" parent="Level" unique_id=456901018]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -8)
+use_collision = true
+size = Vector3(24, 3, 0.5)
+material = SubResource("Material_wall")
+
+[node name="WallSouth" type="CSGBox3D" parent="Level" unique_id=3616052]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 8)
+use_collision = true
+size = Vector3(24, 3, 0.5)
+material = SubResource("Material_wall")
+
+[node name="WallEast" type="CSGBox3D" parent="Level" unique_id=37813609]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 1.5, 0)
+use_collision = true
+size = Vector3(0.5, 3, 16)
+material = SubResource("Material_wall")
+
+[node name="WallWest" type="CSGBox3D" parent="Level" unique_id=16548612]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 1.5, 0)
+use_collision = true
+size = Vector3(0.5, 3, 16)
+material = SubResource("Material_wall")
+
+[node name="Cover1" type="CSGBox3D" parent="Level" unique_id=1509545478]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, -2)
+use_collision = true
+size = Vector3(3, 2, 3)
+material = SubResource("Material_cover")
+
+[node name="Cover2" type="CSGBox3D" parent="Level" unique_id=70716093]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.6, 3.5)
+use_collision = true
+size = Vector3(2, 1.2, 4)
+material = SubResource("Material_cover")
+
+[node name="Cover3" type="CSGBox3D" parent="Level" unique_id=1369286805]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.25, -4)
+use_collision = true
+size = Vector3(4, 2.5, 1)
+material = SubResource("Material_cover")
+
+[node name="Cover4" type="CSGBox3D" parent="Level" unique_id=1454471655]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.75, 4.5)
+use_collision = true
+size = Vector3(1.5, 1.5, 1.5)
+material = SubResource("Material_cover")
+
+[node name="Cover5" type="CSGBox3D" parent="Level" unique_id=1728160725]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1, 4)
+use_collision = true
+size = Vector3(2, 2, 2)
+material = SubResource("Material_cover")
+
+[node name="Pillar" type="CSGBox3D" parent="Level" unique_id=1762944455]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 1.5, 2)
+use_collision = true
+size = Vector3(1, 3, 1)
+material = SubResource("Material_wall")
+
+[node name="Lighting" type="Node3D" parent="." unique_id=366236981]
+
+[node name="LampA" type="Area3D" parent="Lighting" unique_id=923878277]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("5_lightzone")
+
+[node name="Shape" type="CollisionShape3D" parent="Lighting/LampA" unique_id=778317515]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("BoxShape3D_lampA")
+
+[node name="Light" type="OmniLight3D" parent="Lighting/LampA" unique_id=3034417]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, 0)
+light_energy = 7.0
+omni_range = 11.0
+
+[node name="LampB" type="Area3D" parent="Lighting" unique_id=147278871]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 5)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("5_lightzone")
+Illumination = 0.8
+
+[node name="Shape" type="CollisionShape3D" parent="Lighting/LampB" unique_id=1004117153]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("BoxShape3D_lampB")
+
+[node name="Light" type="OmniLight3D" parent="Lighting/LampB" unique_id=1297195376]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, 0)
+light_energy = 5.5
+omni_range = 9.0
+
+[node name="Routes" type="Node3D" parent="." unique_id=1603111376]
+
+[node name="RouteA" type="Node3D" parent="Routes" unique_id=88011352]
+script = ExtResource("4_route")
+
+[node name="A1" type="Marker3D" parent="Routes/RouteA" unique_id=1574597483]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -5)
+
+[node name="A2" type="Marker3D" parent="Routes/RouteA" unique_id=432066479]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -5)
+
+[node name="A3" type="Marker3D" parent="Routes/RouteA" unique_id=1538295858]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 1)
+
+[node name="A4" type="Marker3D" parent="Routes/RouteA" unique_id=1852050136]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 1)
+
+[node name="RouteB" type="Node3D" parent="Routes" unique_id=526806476]
+script = ExtResource("4_route")
+Loop = false
+
+[node name="B1" type="Marker3D" parent="Routes/RouteB" unique_id=154456735]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 6.5)
+
+[node name="B2" type="Marker3D" parent="Routes/RouteB" unique_id=1229120867]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 6.5)
+
+[node name="Player" parent="." unique_id=2038817868 instance=ExtResource("1_playerscene")]
+transform = Transform3D(0.55484444, 0, 0.8319541, 0, 1, 0, -0.8319541, 0, 0.55484444, 10.5, 0.1, 7)
+
+[node name="Guards" type="Node3D" parent="." unique_id=1670365931]
+
+[node name="Guard1" parent="Guards" unique_id=1082206899 node_paths=PackedStringArray("Route") instance=ExtResource("2_guardscene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.1, -5)
+Route = NodePath("../../Routes/RouteA")
+
+[node name="Guard2" parent="Guards" unique_id=1565694989 node_paths=PackedStringArray("Route") instance=ExtResource("2_guardscene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.1, 6.5)
+PatrolSpeed = 2.0
+WaypointPause = 2.5
+Route = NodePath("../../Routes/RouteB")
+
+[node name="Director" type="Node" parent="." unique_id=1946601958]
+script = ExtResource("6_director")
+
+[node name="Hud" parent="." unique_id=663927668 node_paths=PackedStringArray("Director", "Player") instance=ExtResource("3_hudscene")]
+Director = NodePath("../Director")
+Player = NodePath("../Player")

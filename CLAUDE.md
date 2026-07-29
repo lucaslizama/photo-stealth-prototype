@@ -76,6 +76,46 @@ The addon regenerates `.claude/skills/` (one `SKILL.md` per MCP tool, 42 of them
 editor load. They're committed so the docs are available without the editor running — but
 never hand-edit them, your changes will be overwritten on the next launch.
 
+## The stealth model
+
+Detection is **gradual**, not a binary "seen" flag. Each guard integrates a per-frame
+visibility value into its own 0..1 meter:
+
+```
+visibility = angleFactor × distanceFactor × player.Exposure     (0 if out of cone/range/LOS)
+exposure   = stanceFactor × motionFactor × lightFactor
+```
+
+`Exposure` is deliberately allowed **above 1.0** — sprinting through a lit room should be worse
+than the baseline, not merely capped at it. All the tuning knobs are `[Export]`ed, so they can
+be tweaked live in the Inspector.
+
+Guards cycle `Patrol → Investigate → Alert / Search → Patrol`. One non-obvious detail:
+the meter falls below the suspicion threshold within a fraction of a second of losing sight, so
+exiting `Investigate` on that alone made the state last a *single frame*. `InvestigateTimeout`
+plus an "arrived at last known position" check is what makes the guard actually walk over and
+check the spot.
+
+**`LightZone` is a gameplay signal, not real light sampling.** It is an `Area3D` that overrides
+how lit the player counts as being, deliberately decoupled from the renderer — so a designer can
+make a bright-looking corner mechanically dark, and detection stays deterministic.
+
+## Verifying gameplay without clicking around
+
+Headless scripts driving the real scene are far faster than playtesting for logic checks:
+
+```bash
+godot-mono --headless --path . --script /tmp/some_probe.gd   # SceneTree script
+```
+
+Instantiate `res://scenes/Main.tscn`, add it to `root`, and read `Detection` / `State` /
+`Exposure` over a few seconds. This caught the single-frame `Investigate` bug.
+
+**`screenshot-camera` (MCP) does not render the real view** — it returned a pixel-identical
+image after the player was rotated 56°. Don't judge framing or lighting from it. The editor
+viewport screenshot (`screenshot-viewport`) is accurate; for the running game, look at the
+window.
+
 ## Known warnings
 
 The addon emits 3 `CS0618` deprecation warnings on Godot 4.7 (`AddControlToDock` /
