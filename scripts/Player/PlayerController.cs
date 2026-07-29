@@ -15,6 +15,9 @@ namespace PhotoStealthPrototype.Player;
 [GlobalClass]
 public partial class PlayerController : CharacterBody3D
 {
+    /// <summary>Group other systems use to find the player without wiring.</summary>
+    public const string GroupName = "player";
+
     [ExportGroup("Movement")]
     [Export] public float CrouchSpeed { get; set; } = 1.8f;
     [Export] public float WalkSpeed { get; set; } = 3.6f;
@@ -42,6 +45,13 @@ public partial class PlayerController : CharacterBody3D
 
     public bool IsSprinting { get; private set; }
 
+    /// <summary>
+    /// When true, input-driven movement is ignored. Set once the run is lost so a
+    /// discovered player cannot simply walk away from the guard that caught them.
+    /// Cleared by reloading the scene on restart.
+    /// </summary>
+    public bool MovementLocked { get; set; }
+
     /// <summary>Camera pivot. Guards sight this point, not the capsule origin.</summary>
     public Node3D Head { get; private set; } = null!;
 
@@ -51,6 +61,12 @@ public partial class PlayerController : CharacterBody3D
     private CapsuleShape3D _capsule = null!;
     private float _currentHeight;
     private float _pitch;
+
+    /// <summary>
+    /// Latched crouch intent. Kept separate from the applied stance so that being
+    /// stuck under geometry does not silently discard the player's choice.
+    /// </summary>
+    private bool _wantsCrouch;
 
     public override void _Ready()
     {
@@ -88,6 +104,16 @@ public partial class PlayerController : CharacterBody3D
             return;
         }
 
+        // Toggled here rather than polled in _PhysicsProcess: IsActionJustPressed
+        // is unreliable there, firing twice when two physics ticks share a frame
+        // and getting missed when a frame has none. IsActionPressed ignores key
+        // echo by default, so holding C does not flicker the stance.
+        if (@event.IsActionPressed("crouch"))
+        {
+            _wantsCrouch = !_wantsCrouch;
+            return;
+        }
+
         if (@event.IsActionPressed("ui_cancel"))
         {
             Input.MouseMode = Input.MouseMode == Input.MouseModeEnum.Captured
@@ -99,6 +125,12 @@ public partial class PlayerController : CharacterBody3D
     public override void _PhysicsProcess(double delta)
     {
         float dt = (float)delta;
+
+        if (MovementLocked)
+        {
+            HoldStill(dt);
+            return;
+        }
 
         UpdateStance(dt);
 
@@ -140,6 +172,33 @@ public partial class PlayerController : CharacterBody3D
         PlanarSpeed = new Vector2(Velocity.X, Velocity.Z).Length();
     }
 
+    /// <summary>
+    /// Drops all horizontal motion but keeps gravity, so a player frozen mid-air
+    /// still settles onto the floor instead of hanging there. Stance is left
+    /// wherever it was — being caught should not make you stand up.
+    /// </summary>
+    private void HoldStill(float dt)
+    {
+        Vector3 velocity = Velocity;
+        velocity.X = 0f;
+        velocity.Z = 0f;
+
+        if (IsOnFloor())
+        {
+            velocity.Y = 0f;
+        }
+        else
+        {
+            velocity.Y -= Gravity * dt;
+        }
+
+        Velocity = velocity;
+        MoveAndSlide();
+
+        PlanarSpeed = 0f;
+        IsSprinting = false;
+    }
+
     private void UpdateStance(float dt)
     {
         if (_capsule is null)
@@ -147,16 +206,18 @@ public partial class PlayerController : CharacterBody3D
             return;
         }
 
-        bool wantsCrouch = Input.IsActionPressed("crouch");
+        bool crouch = _wantsCrouch;
 
         // Refuse to stand up into geometry — otherwise the growing capsule
         // resolves the overlap by launching the player through the ceiling.
-        if (!wantsCrouch && CurrentStance == Stance.Crouching && IsBlockedAbove())
+        // _wantsCrouch keeps the "stand up" intent, so the player rises on their
+        // own once they clear the low space rather than having to press C twice.
+        if (!crouch && CurrentStance == Stance.Crouching && IsBlockedAbove())
         {
-            wantsCrouch = true;
+            crouch = true;
         }
 
-        CurrentStance = wantsCrouch ? Stance.Crouching : Stance.Standing;
+        CurrentStance = crouch ? Stance.Crouching : Stance.Standing;
 
         float target = CurrentStance == Stance.Crouching ? CrouchHeight : StandHeight;
         _currentHeight = Mathf.Lerp(_currentHeight, target, 1f - Mathf.Exp(-StanceBlendSpeed * dt));

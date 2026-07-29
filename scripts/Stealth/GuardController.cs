@@ -64,7 +64,7 @@ public partial class GuardController : CharacterBody3D
     {
         Vision = GetNode<GuardVision>("Vision");
         AddToGroup("guard");
-        _player = GetTree().GetFirstNodeInGroup("player") as PlayerController;
+        _player = GetTree().GetFirstNodeInGroup(PlayerController.GroupName) as PlayerController;
 
         if (_player is null)
         {

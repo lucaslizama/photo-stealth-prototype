@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using PhotoStealthPrototype.Player;
 
 namespace PhotoStealthPrototype.Stealth;
 
@@ -114,6 +115,15 @@ public partial class StealthDirector : Node
 
         IsCaught = true;
         Input.MouseMode = Input.MouseModeEnum.Visible;
+
+        // Discovered means discovered — no walking away from the guard that caught
+        // you. Releasing the mouse above already stops looking around, and the
+        // shutter is gated on a captured mouse, so this is the last input to cut.
+        if (GetTree().GetFirstNodeInGroup(PlayerController.GroupName) is PlayerController player)
+        {
+            player.MovementLocked = true;
+        }
+
         EmitSignal(SignalName.PlayerCaught);
     }
 
