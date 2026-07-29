@@ -1,0 +1,30 @@
+# Godot 4+ engine files
+.godot/
+/android/
+
+# Godot legacy / import cache
+.import/
+export.cfg
+export_presets.cfg
+
+# .NET / Mono build artifacts
+.mono/
+bin/
+obj/
+*.user
+*.userprefs
+*.suo
+*.swp
+
+# Mono-specific auto-generated files
+data_*/
+
+# Godot-MCP
+# Local MCP server binary is downloaded + cached per-machine
+.godot/mcp-server/
+# Never commit credentials (we run in local Custom mode, but be safe)
+.godot-mcp/credentials.json
+
+# OS noise
+.DS_Store
+Thumbs.db
